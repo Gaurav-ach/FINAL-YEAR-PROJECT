@@ -1,0 +1,166 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String         @id @default(uuid())
+  email            String         @unique
+  password         String
+  firstName        String         @db.VarChar(50)
+  lastName         String         @db.VarChar(50)
+  name             String?
+  status           String?
+  userProfileImage String?
+  isActive         Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  Payment          Payment[]
+  booking          booking[]
+  conversations    Conversation[]
+  Notification     Notification[]
+}
+
+model Requiter {
+  id                   String         @id @default(uuid())
+  email                String         @unique
+  password             String
+  firstName            String         @db.VarChar(50)
+  lastName             String         @db.VarChar(50)
+  name                 String?
+  status               String?
+  role                 role           @default(REQUITER)
+  requiterProfileImage String?
+  contactNumber        String?        @db.VarChar(50)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  Business             Business[]
+  conversations        Conversation[]
+  Notification         Notification[]
+}
+
+model Business {
+  id         String     @id @default(uuid())
+  name       String     @db.VarChar(100)
+  about      String     @db.Text
+  address    String     @db.VarChar(255)
+  category   String     @db.VarChar(100)
+  amount     Float
+  images     ImageUrl[]
+  requiter   Requiter   @relation(fields: [requiterId], references: [id], onDelete: Cascade)
+  requiterId String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  booking    booking[]
+}
+
+model ImageUrl {
+  id         String    @id @default(uuid())
+  url        String
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String?
+}
+
+enum role {
+  REQUITER
+  ADMIN
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  userId        String
+  amount        Float
+  paymentMethod PaymentType
+  status        PaymentStatus
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model booking {
+  id            String        @id @default(uuid())
+  userId        String
+  businessId    String
+  date          DateTime
+  time          String
+  bookingStatus BookingStatus @default(PENDING)
+  latitude      Decimal?      @db.Decimal(10, 8)
+  longitude     Decimal?      @db.Decimal(11, 8)
+  locationName  String?       @db.VarChar(255)
+  createdAt     DateTime      @default(now())
+  updateaAt     DateTime      @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Conversation {
+  id         String    @id @default(uuid())
+  userId     String
+  requiterId String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  messages   Message[]
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requiter Requiter @relation(fields: [requiterId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id             String     @id @default(uuid())
+  content        String     @db.Text
+  senderId       String
+  senderType     SenderType
+  conversationId String
+  read           Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId     String?
+  requiterId String?
+
+  user     User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requiter Requiter? @relation(fields: [requiterId], references: [id], onDelete: Cascade)
+}
+
+enum SenderType {
+  USER
+  REQUITER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+}
+
+enum PaymentType {
+  CREDIT
+  WALLET
+}
+
+enum BookingStatus {
+  PENDING
+  CANCELLED
+  COMPLETED
+}
